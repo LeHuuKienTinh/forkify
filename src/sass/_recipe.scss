@@ -177,3 +177,8 @@
     font-weight: 700;
   }
 }
+@media only screen and (max-width: $bp-small){
+  .recipe__ingredients{
+    padding: 2rem 2rem;
+  }
+}

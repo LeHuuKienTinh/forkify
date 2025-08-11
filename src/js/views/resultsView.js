@@ -6,6 +6,13 @@ class ResultView extends View {
   _errorMessage = 'No recipes found for your query! Please try again'
   _message = ''
 
+  addHandlerClick(handler) {
+    this._parentElement.addEventListener('click', function (e) {
+      const li = e.target.closest('li.preview');
+      if (!li) return; 
+      handler(li);
+    });
+  }
   _generateMarkup() {
     return this._data
       .map((result) => previewView.render(result, false))
