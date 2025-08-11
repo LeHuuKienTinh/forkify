@@ -35,7 +35,6 @@ export default class View {
 
     newElements.forEach((newEl, i) => {
       const curEl = curElements[i]
-      console.log(newEl.isEqualNode(curEl))
 
       if (
         !newEl.isEqualNode(curEl) &&
@@ -46,7 +45,6 @@ export default class View {
 
         //Updates changed ATTRIBUES
       if(!newEl.isEqualNode(curEl)){
-        console.log(newEl.attributes)
         Array.from(newEl.attributes).forEach(attr =>
           curEl.setAttribute(attr.name,attr.value)
         )
