@@ -1,9 +1,0 @@
-@media (width <= 768px) {
-  .container {
-    grid-template: "head"
-                   "head"
-                   "list"
-                   "recipe";
-  }
-}
-/*# sourceMappingURL=ForkifyGIT.6df3e284.css.map */
