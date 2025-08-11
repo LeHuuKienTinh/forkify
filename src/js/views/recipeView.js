@@ -1,10 +1,32 @@
-import View from './View'
 import icons from 'url:../../img/icons.svg'
 import Fraction from 'fraction.js'
-class RecipeView extends View {
-  _parentElement = document.querySelector('.recipe')
-  _errorMessage = "Don't find that recipe.Please try again"
-  _message = ''
+class RecipeView {
+  #parentElement = document.querySelector('.recipe')
+  #data
+  #errorMessage = "Don't find that recipe.Please try again"
+  #message = ''
+  render(data) {
+    this.#data = data
+    const markup = this.#generateMarkup()
+    this.#clear()
+    this.#parentElement.insertAdjacentHTML('afterbegin', markup)
+  }
+
+  #clear() {
+    this.#parentElement.innerHTML = ''
+  }
+
+  renderSpinner() {
+    const markup = `
+        <div class="spinner">
+          <svg>
+            <use href="${icons}#icon-loader"></use>
+          </svg>  
+        </div>
+  `
+    this.#parentElement.innerHTML = ''
+    this.#parentElement.insertAdjacentHTML('afterbegin', markup)
+  }
 
   addHandlerRender(handler) {
     ;['hashchange', 'load'].forEach((ev) =>
@@ -12,32 +34,45 @@ class RecipeView extends View {
     )
   }
 
-  addHandlerUpdateServings(handler) {
-    this._parentElement.addEventListener('click', function (e) {
-      const btn = e.target.closest('.btn--tiny')
-      if (!btn) return
-      console.log(btn)
-      const { updateTo } = btn.dataset
-      if (+updateTo > 0) handler(+updateTo)
-    })
+  renderError(message = this.#errorMessage) {
+    const markup = `
+          <div class="error">
+            <div>
+              <svg>
+                <use href="${icons}#icon-alert-triangle"></use>
+              </svg>
+            </div>  
+            <p>${message}</p>
+          </div>
+    `
+    this.#clear()
+    this.#parentElement.insertAdjacentHTML('afterbegin', markup)
   }
 
-  addHandlerAddBookmark(handler) {
-    this._parentElement.addEventListener('click', function (e) {
-      const btn = e.target.closest('.btn--bookmark')
-      if (!btn) return
-      handler()
-    })
+  renderMessage(message = this.#message) {
+    const markup = `
+          <div class="error">
+            <div>
+              <svg>
+                <use href="${icons}#icon-smile"></use>
+              </svg>
+            </div>  
+            <p>${message}</p>
+          </div>
+    `
+    this.#clear()
+    this.#parentElement.insertAdjacentHTML('afterbegin', markup)
   }
 
-  _generateMarkup() {
+
+  #generateMarkup() {
     return `
         <figure class="recipe__fig">
-              <img src="${this._data.image}" alt="${
-      this._data.title
+              <img src="${this.#data.image}" alt="${
+      this.#data.title
     }" class="recipe__img" />
               <h1 class="recipe__title">
-                <span>${this._data.title}</span>
+                <span>${this.#data.title}</span>
               </h1>
             </figure>
     
@@ -97,13 +132,13 @@ class RecipeView extends View {
             <div class="recipe__ingredients">
               <h2 class="heading--2">Recipe ingredients</h2>
               <ul class="recipe__ingredient-list">
-              ${this._data.ingredients
+              ${this.#data.ingredients
                 .map(this._generateMarkupIngredient)
                 .join('')}
               </ul>
             </div>
     
-            <div_ class="recipe__directions">
+            <div class="recipe__directions">
               <h2 class="heading--2">How to cook it</h2>
               <p class="recipe__directions-text">
                 This recipe was carefully designed and tested by
