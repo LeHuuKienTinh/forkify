@@ -1,155 +1,126 @@
 import recipeFaker from '../../public/data.json'
-import icons from 'url:../img/icons.svg'
+import 'core-js/stable'
+import 'regenerator-runtime/runtime'
+import * as model from './model.js'
+import recipeView from './views/recipeView.js'
+import searchView from './views/searchView.js'
+import resultView from './views/resultsView.js'
+import bookmarkView from './views/bookmarkView.js'
+import paginationView from './views/paginationView.js'
+import addRecipeView from './views/addRecipeView.js'
+import { MODAL_CLOSE_SEC } from './config.js'
 
-const recipeContainer = document.querySelector('.recipe')
-
-const timeout = function (s) {
-  return new Promise(function (_, reject) {
-    setTimeout(function () {
-      reject(new Error(`Request took too long! Timeout after ${s} second`))
-    }, s * 1000)
-  })
-}
-
-// console.log('kkk')
-// NEW API URL (instead of the one shown in the video)
-// https://forkify-api.jonas.io
-
-///////////////////////////////////////
-
-const showRecipe = async () => {
+const controlRecipes = async function () {
   try {
+    const id = window.location.hash.slice(1)
+
+    if (!id) return
+
+    recipeView.renderSpinner()
+
+    //Update results view to mark selected search result
+    resultView.update(model.getSearchResultsPage())
+
+    //0 Updating bookmarks vỉew
+    bookmarkView.update(model.state.bookmarks)
+
     // 1) Loading recipe
-    // let res = await fetch('').catch(() => {
-    //   return recipeFaker
-    // })
-    const data = await recipeFaker
-    // const data = await res.json()
-
-    // if (!res.ok) {
-    //   throw new Error(`${data.message} ${res.status}`)
-    // }
-    // console.log('dataaa', data)
-
-    let { recipe } = data.data
-    recipe = {
-      id: recipe.id,
-      title: recipe.title,
-      publisher: recipe.publisher,
-      sourceUrl: recipe.source_url,
-      image: recipe.image_url,
-      servings: recipe.servings,
-      cookingTime: recipe.cooking_time,
-      ingredients: recipe.ingredients,
-    }
-    console.log('Cong thuc', recipe)
+    await model.loadRecipe(id)
 
     //2) Redering recipe
-    const markup = `
-    <figure class="recipe__fig">
-          <img src="${recipe.image}" alt="${
-      recipe.title
-    }" class="recipe__img" />
-          <h1 class="recipe__title">
-            <span>${recipe.title}</span>
-          </h1>
-        </figure>
-
-        <div class="recipe__details">
-          <div class="recipe__info">
-            <svg class="recipe__info-icon">
-              <use href="${icons}#icon-clock"></use>
-            </svg>
-            <span class="recipe__info-data recipe__info-data--minutes">${
-              recipe.cookingTime
-            }</span>
-            <span class="recipe__info-text">minutes</span>
-          </div>
-          <div class="recipe__info">
-            <svg class="recipe__info-icon">
-              <use href="${icons}#icon-users"></use>
-            </svg>
-            <span class="recipe__info-data recipe__info-data--people">${
-              recipe.servings
-            }</span>
-            <span class="recipe__info-text">servings</span>
-
-            <div class="recipe__info-buttons">
-              <button class="btn--tiny btn--increase-servings">
-                <svg>
-                  <use href="${icons}#icon-minus-circle"></use>
-                </svg>
-              </button>
-              <button class="btn--tiny btn--increase-servings">
-                <svg>
-                  <use href="${icons}#icon-plus-circle"></use>
-                </svg>
-              </button>
-            </div>
-          </div>
-
-          <div class="recipe__user-generated">
-            <svg>
-              <use href="${icons}#icon-user"></use>
-            </svg>
-          </div>
-          <button class="btn--round">
-            <svg class="">
-              <use href="${icons}#icon-bookmark-fill"></use>
-            </svg>
-          </button>
-        </div>
-
-        <div class="recipe__ingredients">
-          <h2 class="heading--2">Recipe ingredients</h2>
-          <ul class="recipe__ingredient-list">
-          ${recipe.ingredients
-            .map((ing) => {
-              return `
-            <li class="recipe__ingredient">
-              <svg class="recipe__icon">
-                <use href="${icons}#icon-check"></use>
-              </svg>
-              <div class="recipe__quantity">${ing.quantity}</div>
-              <div class="recipe__description">
-                <span class="recipe__unit">g${ing.unit}</span>
-                ${ing.description}
-              </div>
-            </li>
-            `
-            })
-            .join('')}
-          </ul>
-        </div>
-
-        <div class="recipe__directions">
-          <h2 class="heading--2">How to cook it</h2>
-          <p class="recipe__directions-text">
-            This recipe was carefully designed and tested by
-            <span class="recipe__publisher">${
-              recipe.publisher
-            }</span>. Please check out
-            directions at their website.
-          </p>
-          <a
-            class="btn--small recipe__btn"
-            href="${recipe.sourceUrl}"
-            target="_blank"
-          >
-            <span>Directions</span>
-            <svg class="search__icon">
-              <use href="${icons}#icon-arrow-right"></use>
-            </svg>
-          </a>
-        </div>
-        `
-    recipeContainer.innerHTML = ''
-    recipeContainer.insertAdjacentHTML('afterbegin', markup)
+    recipeView.render(model.state.recipe)
+    controlServings(model.state.recipe.servings)
   } catch (err) {
-    // alert(err)
+    recipeView.renderError()
+  }
+}
+
+const controlSearchResults = async function () {
+  try {
+    resultView.renderSpinner()
+    //1 Get search query
+    const query = searchView.getQuery()
+    if (!query) return
+
+    //2 Load search results
+    await model.loadSearchResults(query)
+
+    //3 Render results
+    resultView.render(model.getSearchResultsPage())
+
+    //4 Render initial pagination buttons
+    paginationView.render(model.state.search)
+  } catch (err) {
     console.log(err)
   }
 }
 
-showRecipe()
+const controlPagination = function (goToPage) {
+  //1 Render new results
+  resultView.render(model.getSearchResultsPage(goToPage))
+
+  //2 Render new  pagination buttons
+  paginationView.render(model.state.search)
+}
+
+const controlServings = function (newServings) {
+  model.updateServings(newServings)
+  recipeView.update(model.state.recipe)
+}
+
+const controlAddBookmark = function () {
+  //1 Add/remove bookmark
+  if (!model.state.recipe.bookmarked) model.addBookmark(model.state.recipe)
+  else model.deleteBookmark(model.state.recipe.id)
+
+  //2 Update recipe view
+  recipeView.update(model.state.recipe)
+
+  //3 Render bookmarks
+  bookmarkView.render(model.state.bookmarks)
+}
+
+const controlBookmarks = function () {
+  bookmarkView.render(model.state.bookmarks)
+}
+
+const controlAddRecipe = async function (newRecipe) {
+  try {
+    addRecipeView.renderSpinner()
+    //Upload the new recipe data
+    await model.uploadRecipe(newRecipe)
+
+    //Render recipe
+    recipeView.render(model.state.recipe)
+
+    //Success message
+    addRecipeView.renderMessage
+
+    //Render bookmark view
+    bookmarkView.render(model.state.bookmarks)
+
+    //Change ID in url
+    window.history.pushState(null, '', `${model.state.recipe.id}`)
+
+    //Close form
+    setTimeout(function () {
+      addRecipeView.toggleWindow()
+    }, MODAL_CLOSE_SEC * 1000)
+  } catch (err) {
+    console.error(err)
+    addRecipeView.renderError(err.message)
+  }
+}
+
+function init() {
+  bookmarkView.addHandlerRender(controlBookmarks)
+  recipeView.addHandlerRender(controlRecipes)
+  recipeView.addHandlerUpdateServings(controlServings)
+  recipeView.addHandlerAddBookmark(controlAddBookmark)
+  searchView.addHandleSearch(controlSearchResults)
+  paginationView.addHandlerClick(controlPagination)
+  addRecipeView.addHandlerUpload(controlAddRecipe)
+}
+
+init()
 
